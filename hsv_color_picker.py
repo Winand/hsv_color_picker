@@ -62,10 +62,12 @@ class SliderHSV:
         cv2.rectangle(sv, pos_pt1, pos_pt2, (255, 255, 255))
         sh_y1 = (24, 12) if pt2[1] > pt1[1] else (-12, 0)
         sh_y2 = (0, -12) if pt2[1] > pt1[1] else (24, 12)
-        cv2.putText(sv, f"Sat.{pt1[1]}", (pos_pt1[0], pos_pt1[1] + sh_y1[1]), cv2.FONT_HERSHEY_PLAIN, 0.75, 0, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Br.{pt1[0]}", (pos_pt1[0], pos_pt1[1] + sh_y1[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, 0, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Sat.{pt2[1]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[1]), cv2.FONT_HERSHEY_PLAIN, 0.75, 0, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Br.{pt2[0]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, 0, lineType=cv2.LINE_AA)
+        c1 = 0 if pos_pt1[0] > self.size / 3 else (255, 255, 255)  # white text in left (darker) part
+        c2 = 0 if pos_pt2[0] - 45 > self.size / 3 else (255, 255, 255)
+        cv2.putText(sv, f"Sat.{pt1[1]}", (pos_pt1[0], pos_pt1[1] + sh_y1[1]), cv2.FONT_HERSHEY_PLAIN, 0.75, c1, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"Br.{pt1[0]}", (pos_pt1[0], pos_pt1[1] + sh_y1[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, c1, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"Sat.{pt2[1]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[1]), cv2.FONT_HERSHEY_PLAIN, 0.75, c2, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"Br.{pt2[0]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, c2, lineType=cv2.LINE_AA)
         cv2.imshow(self.window_name, sv)
 
     def set_rect(self, pt1, pt2):
