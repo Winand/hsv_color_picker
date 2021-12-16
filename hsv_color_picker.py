@@ -5,6 +5,7 @@ import numpy as np
 class SliderHSV:
     SLIDER_H = 16  # px
     sliding = False
+    sliding_hue = False
 
     def __init__(self, window_name, size=255):
         self.window_name = window_name
@@ -43,16 +44,22 @@ class SliderHSV:
             self.sliding = True
             if param == self.window_name:
                 self.set_value(self.pos_to_hue(x))
+            elif y > self.size:
+                self.sliding_hue = True
+                self.set_value(self.pos_to_hue(x))
             else:
                 self.pt = self.pos_to_val(x), self.pos_to_val(y)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self.sliding:
                 if param == self.window_name:
                     self.set_value(self.pos_to_hue(x))
+                elif self.sliding_hue:
+                    self.set_value(self.pos_to_hue(x))
                 else:
                     self.set_rect(self.pt, (self.pos_to_val(x), self.pos_to_val(y)))
         elif event == cv2.EVENT_LBUTTONUP:
             self.sliding = False
+            self.sliding_hue = False
 
     def draw_rect(self):
         pt1 = self.lower_color[::-1]
@@ -77,18 +84,21 @@ class SliderHSV:
         self.draw_rect()
 
     def set_value(self, hue):
-        hue = min(hue, 179)
-        hue = max(hue, 0)
+        hue = max(min(hue, 179), 0)
         h_comp = self.h_comp.copy()
         x_pos = self.hue_to_pos(hue)
         cv2.line(h_comp, (x_pos, 0), (x_pos, self.SLIDER_H), (255, 255, 255), 2)
         cv2.putText(h_comp, f"Hue {hue}", (0, self.SLIDER_H), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
         self.sv = self.create_sat_br_rect(hue)
+        cv2.line(self.sv, (x_pos, self.size), (x_pos, self.size + self.SLIDER_H), (255, 255, 255), 2)
+        cv2.putText(self.sv, f"Hue {hue}", (0, self.size + self.SLIDER_H), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
         cv2.imshow(self.window_name, h_comp)
-        cv2.imshow("Sat-Bri", self.sv)
         self.hue = hue
         self.draw_rect()
 
     def create_sat_br_rect(self, hue):
         self.tpl_hsv[:, :, 0] = hue
-        return cv2.vconcat([cv2.cvtColor(self.tpl_hsv, cv2.COLOR_HSV2BGR), self.h_comp])
+        return cv2.vconcat([
+            cv2.cvtColor(self.tpl_hsv, cv2.COLOR_HSV2BGR),
+            self.h_comp
+        ])
