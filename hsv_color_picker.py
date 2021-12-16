@@ -3,19 +3,19 @@ import numpy as np
 
 
 class SliderHSV:
-    SLIDER_H = 16  # px
     sliding = None
 
-    def __init__(self, window_name, size=255):
+    def __init__(self, window_name, size=255, slider_height=16):
         self.window_name = window_name
-        self.size = size
+        self.size = size  # px
+        self.slider_height = slider_height  # px
         self.pt = 0, 0
         self.hue = 0
         self.lower_color = [0, 0]
         self.upper_color = [0, 0]
 
         h_comp = np.uint8([np.linspace([0., 255., 255.], [179., 255., 255.], self.size)])
-        h_comp = np.broadcast_to(h_comp, (self.SLIDER_H, self.size, 3))
+        h_comp = np.broadcast_to(h_comp, (self.slider_height, self.size, 3))
         self.h_comp = cv2.cvtColor(h_comp, cv2.COLOR_HSV2BGR)
         self.tpl_hsv = np.uint8([  # This is very very slow!
             (0, i, j) for i in np.linspace(0., 255., self.size)
@@ -79,8 +79,8 @@ class SliderHSV:
         hue = max(min(hue, 179), 0)
         x_pos = self.hue_to_pos(hue)
         self.sv = self.create_sat_br_rect(hue)
-        cv2.line(self.sv, (x_pos, self.size), (x_pos, self.size + self.SLIDER_H), (255, 255, 255), 2)
-        cv2.putText(self.sv, f"Hue {hue}", (0, self.size + self.SLIDER_H), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
+        cv2.line(self.sv, (x_pos, self.size), (x_pos, self.size + self.slider_height), (255, 255, 255), 2)
+        cv2.putText(self.sv, f"Hue {hue}", (0, self.size + self.slider_height), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
         self.hue = hue
         self.draw_rect()
 
