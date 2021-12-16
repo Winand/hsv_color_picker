@@ -7,7 +7,7 @@ from hsv_color_picker import SliderHSV
 color_slider = SliderHSV("HSV slider")
 cap = cv.VideoCapture(0, cv.CAP_DSHOW)
 hue_width = 10
-while(1):
+while True:
     # Take each frame
     _, frame = cap.read()
     # Convert BGR to HSV

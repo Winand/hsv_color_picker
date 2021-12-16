@@ -4,8 +4,7 @@ import numpy as np
 
 class SliderHSV:
     SLIDER_H = 16  # px
-    sliding = False
-    sliding_hue = False
+    sliding = None
 
     def __init__(self, window_name, size=255):
         self.window_name = window_name
@@ -23,8 +22,7 @@ class SliderHSV:
                       for j in np.linspace(0., 255., self.size)
         ]).reshape(self.size, self.size, 3)
         self.set_value(0)
-        cv2.setMouseCallback(window_name, self.on_mouse_event, param=self.window_name)
-        cv2.setMouseCallback("Sat-Bri", self.on_mouse_event)
+        cv2.setMouseCallback(window_name, self.on_mouse_event)
 
     def pos_to_hue(self, x):
         return int(x / self.size * 179)
@@ -41,25 +39,19 @@ class SliderHSV:
     def on_mouse_event(self, event, x, y, flags, param):
         # https://docs.opencv.org/4.x/db/d5b/tutorial_py_mouse_handling.html
         if event == cv2.EVENT_LBUTTONDOWN:
-            self.sliding = True
-            if param == self.window_name:
-                self.set_value(self.pos_to_hue(x))
-            elif y > self.size:
-                self.sliding_hue = True
+            if y > self.size:
+                self.sliding = "hue"
                 self.set_value(self.pos_to_hue(x))
             else:
+                self.sliding = "sat-br"
                 self.pt = self.pos_to_val(x), self.pos_to_val(y)
         elif event == cv2.EVENT_MOUSEMOVE:
-            if self.sliding:
-                if param == self.window_name:
-                    self.set_value(self.pos_to_hue(x))
-                elif self.sliding_hue:
-                    self.set_value(self.pos_to_hue(x))
-                else:
-                    self.set_rect(self.pt, (self.pos_to_val(x), self.pos_to_val(y)))
+            if self.sliding == "hue":
+                self.set_value(self.pos_to_hue(x))
+            elif self.sliding == "sat-br":
+                self.set_rect(self.pt, (self.pos_to_val(x), self.pos_to_val(y)))
         elif event == cv2.EVENT_LBUTTONUP:
-            self.sliding = False
-            self.sliding_hue = False
+            self.sliding = None
 
     def draw_rect(self):
         pt1 = self.lower_color[::-1]
@@ -74,7 +66,7 @@ class SliderHSV:
         cv2.putText(sv, f"Br.{pt1[0]}", (pos_pt1[0], pos_pt1[1] + sh_y1[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, 0, lineType=cv2.LINE_AA)
         cv2.putText(sv, f"Sat.{pt2[1]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[1]), cv2.FONT_HERSHEY_PLAIN, 0.75, 0, lineType=cv2.LINE_AA)
         cv2.putText(sv, f"Br.{pt2[0]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, 0, lineType=cv2.LINE_AA)
-        cv2.imshow("Sat-Bri", sv)
+        cv2.imshow(self.window_name, sv)
 
     def set_rect(self, pt1, pt2):
         pt1 = max(min(pt1[0], 255), 0), max(min(pt1[1], 255), 0)
@@ -85,14 +77,10 @@ class SliderHSV:
 
     def set_value(self, hue):
         hue = max(min(hue, 179), 0)
-        h_comp = self.h_comp.copy()
         x_pos = self.hue_to_pos(hue)
-        cv2.line(h_comp, (x_pos, 0), (x_pos, self.SLIDER_H), (255, 255, 255), 2)
-        cv2.putText(h_comp, f"Hue {hue}", (0, self.SLIDER_H), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
         self.sv = self.create_sat_br_rect(hue)
         cv2.line(self.sv, (x_pos, self.size), (x_pos, self.size + self.SLIDER_H), (255, 255, 255), 2)
         cv2.putText(self.sv, f"Hue {hue}", (0, self.size + self.SLIDER_H), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
-        cv2.imshow(self.window_name, h_comp)
         self.hue = hue
         self.draw_rect()
 
@@ -102,3 +90,12 @@ class SliderHSV:
             cv2.cvtColor(self.tpl_hsv, cv2.COLOR_HSV2BGR),
             self.h_comp
         ])
+
+
+if __name__ == '__main__':
+    slider = SliderHSV("HSV Color Picker")
+    while True:
+        k = cv2.waitKey(20) & 0xFF
+        if k == 27:
+            break
+    cv2.destroyAllWindows()
