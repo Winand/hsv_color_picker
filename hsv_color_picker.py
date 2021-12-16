@@ -5,7 +5,7 @@ import numpy as np
 class SliderHSV:
     sliding = None
 
-    def __init__(self, window_name, size=255, slider_height=16):
+    def __init__(self, window_name, size=256, slider_height=16):
         self.window_name = window_name
         self.size = size  # px
         self.slider_height = slider_height  # px
