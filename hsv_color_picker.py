@@ -33,8 +33,17 @@ class SliderHSV:
     def pos_to_val(self, x):
         return int(x / self.size * 255)
 
-    def vals_to_pos(self, h):
-        return np.int16(np.array(h) / 255 * self.size)
+    def vals_to_pos(self, h) -> tuple:
+        """
+        Scales 0-255 range values to widget size in pixels.
+        Note: OpenCV 4.0.1 `rectangle` requires tuples as points
+
+        Arguments:
+        `h` - array of values
+
+        Returns: Tuple[int, ...]
+        """
+        return tuple(np.int16(np.array(h) / 255 * self.size))
 
     def on_mouse_event(self, event, x, y, flags, param):
         # https://docs.opencv.org/4.x/db/d5b/tutorial_py_mouse_handling.html
