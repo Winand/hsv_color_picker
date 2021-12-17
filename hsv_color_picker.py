@@ -78,10 +78,19 @@ class SliderHSV:
         if self.normalized_display:
             pt1 = f"{pt1[0] / 255:.1%}", f"{pt1[1] / 255:.1%}"
             pt2 = f"{pt2[0] / 255:.1%}", f"{pt2[1] / 255:.1%}"
-        cv2.putText(sv, f"Sat.{pt1[1]}", (pos_pt1[0], pos_pt1[1] + sh_y1[1]), self.font, 0.75, c1, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Br.{pt1[0]}", (pos_pt1[0], pos_pt1[1] + sh_y1[0]), self.font, 0.75, c1, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Sat.{pt2[1]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[1]), self.font, 0.75, c2, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Br.{pt2[0]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[0]), self.font, 0.75, c2, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"S.{pt1[1]}", (pos_pt1[0] + 1, pos_pt1[1] + sh_y1[1]),
+                    self.font, 0.75, c1, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"B.{pt1[0]}", (pos_pt1[0] + 1, pos_pt1[1] + sh_y1[0]),
+                    self.font, 0.75, c1, lineType=cv2.LINE_AA)
+        pt21_text = f"S.{pt2[1]}"
+        # Baseline info https://stackoverflow.com/q/51285616
+        (w, _), _ = cv2.getTextSize(pt21_text, self.font, 0.75, thickness=1)
+        cv2.putText(sv, pt21_text, (pos_pt2[0] - w, pos_pt2[1] + sh_y2[1] - 1),
+                    self.font, 0.75, c2, lineType=cv2.LINE_AA)
+        pt20_text = f"B.{pt2[0]}"
+        (w, _), _ = cv2.getTextSize(pt20_text, self.font, 0.75, thickness=1)
+        cv2.putText(sv, pt20_text, (pos_pt2[0] - w, pos_pt2[1] + sh_y2[0] - 1),
+                    self.font, 0.75, c2, lineType=cv2.LINE_AA)
         cv2.imshow(self.window_name, sv)
 
     def set_rect(self, pt1, pt2):
@@ -110,7 +119,7 @@ class SliderHSV:
 
 
 if __name__ == '__main__':
-    slider = SliderHSV("HSV Color Picker")
+    slider = SliderHSV("HSV Color Picker", normalized_display=True)
     while True:
         k = cv2.waitKey(20) & 0xFF
         if k == 27:
