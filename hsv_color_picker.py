@@ -3,10 +3,20 @@ import numpy as np
 
 
 class SliderHSV:
+    """
+    Widget allows to select hue value and saturation/brightness range.
+
+    `window_name` - name of a window which is used to display widget
+    `size` - widget width. Default is 256px
+    `slider_height` - hue slider height. Default is 16px
+    `normalized_display` - display normalized values. Default is False
+                           Hue 0-360, saturation/brightness 0-100%
+    """
     sliding = None
     font = cv2.FONT_HERSHEY_PLAIN
 
-    def __init__(self, window_name, size=256, slider_height=16, normalized_display=False):
+    def __init__(self, window_name, size: int=256, slider_height: int=16,
+                 normalized_display=False):
         self.window_name = window_name
         self.size = size  # px
         self.slider_height = slider_height  # px
