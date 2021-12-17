@@ -37,13 +37,13 @@ class SliderHSV:
         cv2.setMouseCallback(window_name, self.on_mouse_event)
 
     def pos_to_hue(self, x):
-        return int(x / self.size * 179)
+        return int(x / (self.size - 1) * 179)
 
     def hue_to_pos(self, h):
-        return int(h / 179 * self.size)
+        return int(h / 179 * (self.size - 1))
 
     def pos_to_val(self, x):
-        return int(x / self.size * 255)
+        return int(x / (self.size - 1) * 255)
 
     def vals_to_pos(self, h) -> tuple:
         """
@@ -55,7 +55,7 @@ class SliderHSV:
 
         Returns: Tuple[int, ...]
         """
-        return tuple(np.int16(np.array(h) / 255 * self.size))
+        return tuple(np.int16(np.array(h) / 255 * (self.size - 1)))
 
     def on_mouse_event(self, event, x, y, flags, param):
         # https://docs.opencv.org/4.x/db/d5b/tutorial_py_mouse_handling.html
