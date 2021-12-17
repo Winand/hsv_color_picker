@@ -72,6 +72,10 @@ class SliderHSV:
             elif self.sliding == "sat-br":
                 self.set_rect(self.pt, (self.pos_to_val(x), self.pos_to_val(y)))
         elif event == cv2.EVENT_LBUTTONUP:
+            if self.sliding == "sat-br":
+                if self.vals_to_pos(self.pt) == (x, y):
+                    # Single click resets range (hide rect)
+                    self.set_rect((0, 0), (0, 0))
             self.sliding = None
 
     def draw_rect(self):
