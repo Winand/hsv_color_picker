@@ -4,11 +4,13 @@ import numpy as np
 
 class SliderHSV:
     sliding = None
+    font = cv2.FONT_HERSHEY_PLAIN
 
-    def __init__(self, window_name, size=256, slider_height=16):
+    def __init__(self, window_name, size=256, slider_height=16, normalized_display=False):
         self.window_name = window_name
         self.size = size  # px
         self.slider_height = slider_height  # px
+        self.normalized_display = normalized_display
         self.pt = 0, 0
         self.hue = 0
         self.lower_color = [0, 0]
@@ -73,10 +75,13 @@ class SliderHSV:
         sh_y2 = (0, -12) if pt2[1] > pt1[1] else (24, 12)
         c1 = 0 if pos_pt1[0] > self.size / 3 else (255, 255, 255)  # white text in left (darker) part
         c2 = 0 if pos_pt2[0] - 45 > self.size / 3 else (255, 255, 255)
-        cv2.putText(sv, f"Sat.{pt1[1]}", (pos_pt1[0], pos_pt1[1] + sh_y1[1]), cv2.FONT_HERSHEY_PLAIN, 0.75, c1, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Br.{pt1[0]}", (pos_pt1[0], pos_pt1[1] + sh_y1[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, c1, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Sat.{pt2[1]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[1]), cv2.FONT_HERSHEY_PLAIN, 0.75, c2, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"Br.{pt2[0]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[0]), cv2.FONT_HERSHEY_PLAIN, 0.75, c2, lineType=cv2.LINE_AA)
+        if self.normalized_display:
+            pt1 = f"{pt1[0] / 255:.1%}", f"{pt1[1] / 255:.1%}"
+            pt2 = f"{pt2[0] / 255:.1%}", f"{pt2[1] / 255:.1%}"
+        cv2.putText(sv, f"Sat.{pt1[1]}", (pos_pt1[0], pos_pt1[1] + sh_y1[1]), self.font, 0.75, c1, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"Br.{pt1[0]}", (pos_pt1[0], pos_pt1[1] + sh_y1[0]), self.font, 0.75, c1, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"Sat.{pt2[1]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[1]), self.font, 0.75, c2, lineType=cv2.LINE_AA)
+        cv2.putText(sv, f"Br.{pt2[0]}", (pos_pt2[0] - 45, pos_pt2[1] + sh_y2[0]), self.font, 0.75, c2, lineType=cv2.LINE_AA)
         cv2.imshow(self.window_name, sv)
 
     def set_rect(self, pt1, pt2):
@@ -91,7 +96,8 @@ class SliderHSV:
         x_pos = self.hue_to_pos(hue)
         self.sv = self.create_sat_br_rect(hue)
         cv2.line(self.sv, (x_pos, self.size), (x_pos, self.size + self.slider_height), (255, 255, 255), 2)
-        cv2.putText(self.sv, f"Hue {hue}", (0, self.size + self.slider_height), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
+        disp_hue = f"{hue/179*360:.1f}" if self.normalized_display else str(hue)
+        cv2.putText(self.sv, f"Hue {disp_hue}", (0, self.size + self.slider_height - 2), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
         self.hue = hue
         self.draw_rect()
 
