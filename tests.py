@@ -17,5 +17,12 @@ class Test(ut.TestCase):
         self.assertEqual(w.pos_to_val(0), 0)
         self.assertEqual(w.pos_to_val(319), 255)
 
+    def test_shift_hue(self):
+        w = SliderHSV('test')
+        w.hue = 171
+        self.assertEqual(w.shift_hue(10), 1)
+        w.hue = 0
+        self.assertEqual(w.shift_hue(-10), 170)
+
 if __name__ == '__main__':
     ut.main()

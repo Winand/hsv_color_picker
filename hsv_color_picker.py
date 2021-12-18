@@ -132,6 +132,16 @@ class SliderHSV:
         ])
 
 
+    def shift_hue(self, shift):
+        "Returns shifted hue value, e. g. 179 (hue) + 3 (shift) gives 2"
+        #                                    sign
+        ret = self.hue + abs(shift) % 180 * (-(shift < 0) or 1)
+        if ret < 0:
+            ret = 180 + ret
+        elif ret > 179:
+            ret = ret - 180
+        return ret
+
 if __name__ == '__main__':
     slider = SliderHSV("HSV Color Picker", normalized_display=True)
     while True:
