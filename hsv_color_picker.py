@@ -23,8 +23,8 @@ class SliderHSV:
         self.normalized_display = normalized_display
         self.pt = 0, 0
         self.hue = 0
-        self.lower_color = [0, 0]
-        self.upper_color = [0, 0]
+        self._lower_color = [0, 0]
+        self._upper_color = [0, 0]
 
         h_comp = np.uint8([np.linspace([0., 255., 255.], [179., 255., 255.], self.size)])
         h_comp = np.broadcast_to(h_comp, (self.slider_height, self.size, 3))
@@ -79,8 +79,8 @@ class SliderHSV:
             self.sliding = None
 
     def draw_rect(self):
-        pt1 = self.lower_color[::-1]
-        pt2 = self.upper_color[::-1]
+        pt1 = self._lower_color[::-1]
+        pt2 = self._upper_color[::-1]
         pos_pt1 = self.vals_to_pos(pt1)
         pos_pt2 = self.vals_to_pos(pt2)
         sv = self.sv.copy()
@@ -110,8 +110,8 @@ class SliderHSV:
     def set_rect(self, pt1, pt2):
         pt1 = max(min(pt1[0], 255), 0), max(min(pt1[1], 255), 0)
         pt2 = max(min(pt2[0], 255), 0), max(min(pt2[1], 255), 0)
-        self.lower_color = min(pt1[1], pt2[1]), min(pt1[0], pt2[0])
-        self.upper_color = max(pt1[1], pt2[1]), max(pt1[0], pt2[0])
+        self._lower_color = min(pt1[1], pt2[1]), min(pt1[0], pt2[0])
+        self._upper_color = max(pt1[1], pt2[1]), max(pt1[0], pt2[0])
         self.draw_rect()
 
     def set_value(self, hue):
@@ -131,6 +131,13 @@ class SliderHSV:
             self.h_comp
         ])
 
+    @property
+    def lower_color(self):
+        return self.hue, *self._lower_color
+
+    @property
+    def upper_color(self):
+        return self.hue, *self._upper_color
 
     def shift_hue(self, shift):
         "Returns shifted hue value, e. g. 179 (hue) + 3 (shift) gives 2"
