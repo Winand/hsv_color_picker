@@ -198,10 +198,11 @@ class RectSelection:
             )
             self.sel_rc.normalize()
             self.moving = None
+            self._last_cursor_area = None  # forced update
             return True
         elif event == cv2.EVENT_RBUTTONDOWN:  # cancel operation
-            self.draw_rect(self.sel_rc)
             self.moving = None
+            self.draw_rect(self.sel_rc, hilight=self.get_cursor_area(x, y))
             return True
 
     def draw_rect(self, rc: Rect, hilight: RectElement=None):
@@ -278,12 +279,6 @@ class RectSelection:
 if __name__ == '__main__':
     sel = None
 
-    # def on_mouse_event(event, x, y, flags, param):
-    #     if event == cv2.EVENT_LBUTTONDOWN:
-    #         global sel
-    #         sel = RectSelection("test_wnd")
-
-    # cv2.namedWindow("test_wnd")
     img = cv2.imread("samples/messi5.jpg")
     cv2.imshow("test_wnd", img)
     sel = RectSelection("test_wnd", img)
@@ -293,20 +288,3 @@ if __name__ == '__main__':
         if k == 27:
             break
     cv2.destroyAllWindows()
-
-# if __name__ == '__main__' :
-
-#     # Read image
-#     im = cv2.imread("samples/messi5.jpg")
-
-#     # Select ROI
-#     r = cv2.selectROI(im, False, False)
-#     print(r)
-#     # Crop image
-#     imCrop = im[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
-
-#     # Display cropped image
-#     cv2.imshow("Image", imCrop)
-#     cv2.waitKey(0)
-
-#     cv2.destroyAllWindows()
