@@ -220,19 +220,20 @@ class RectSelection:
         * topleft, topright, bottomright, bottomleft - corners
         * area - cursor inside rect
         """
+        tol = self.cursor_tolerance
         tl, _, br, _ = self.sel_rc.points
-        if not self.pos_in_rect(x, y, self.sel_rc, allowance=self.cursor_tolerance):
+        if not self.pos_in_rect(x, y, self.sel_rc, allowance=tol):
             return
 
         ret = RectElement(0)
-        if abs(tl.y - y) <= 2:
+        if abs(tl.y - y) <= tol:
             ret |= RectElement.top
-        elif abs(br.y - y) <= 2:
+        elif abs(br.y - y) <= tol:
             ret |= RectElement.bottom
 
-        if abs(tl.x - x) <= 2:
+        if abs(tl.x - x) <= tol:
             ret |= RectElement.left
-        elif abs(br.x - x) <= 2:
+        elif abs(br.x - x) <= tol:
             ret |= RectElement.right
 
         if not ret and (tl.x <= x <= br.x and
