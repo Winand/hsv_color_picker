@@ -262,6 +262,18 @@ class RectSelection:
         return (tl.x - a <= x <= br.x + a and
                 tl.y - a <= y <= br.y + a)
 
+    def set_image(self, img: np.ndarray,
+                  rect: Union[Tuple[int, int, int, int], Rect]=None):
+        self.img = img
+        if rect:
+            self.rc = rect if isinstance(rect, Rect) else \
+                    Rect(*(rect or (0, 0) + cv2.getWindowImageRect(self.wnd)[2:]))
+        self.draw_rect(self.sel_rc)
+
+    @property
+    def selection(self):
+        return self.sel_rc
+
 
 if __name__ == '__main__':
     sel = None
