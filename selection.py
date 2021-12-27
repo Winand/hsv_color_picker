@@ -3,7 +3,7 @@ see also selectROI
 """
 from dataclasses import dataclass, astuple
 from enum import Flag, auto
-from typing import Optional, Tuple, NamedTuple
+from typing import Optional, Tuple, NamedTuple, Union
 
 import cv2
 import numpy as np
@@ -103,36 +103,62 @@ class RectSelection:
     clr_white = (255, 255, 255)
     cursor_tolerance = 3
 
-    def __init__(self, window_name: str, img: np.ndarray, rect: Tuple[int, int, int, int]=None):
+    def __init__(self, window_name: str, img: np.ndarray,
+                 rect: Union[Tuple[int, int, int, int], Rect]=None):
         self.moving: Optional[RectElement] = None
         self.wnd = window_name
         self.img = img
-        self.rc = Rect(*(rect or (0, 0) + cv2.getWindowImageRect(window_name)[2:]))
+        if isinstance(rect, Rect):
+            self.rc = rect
+        else:
+            self.rc = Rect(*(rect or (0, 0) + cv2.getWindowImageRect(window_name)[2:]))
         self.sel_rc = Rect()
         self.sel_pt = Point()  # point of mouse down event
         cv2.setMouseCallback(window_name, self.on_mouse_event)
 
     @staticmethod
-    def transformed_rect(rect, el: Optional[RectElement], vec: Vector) -> Rect:
+    def transformed_rect(rect, el: Optional[RectElement], vec: Vector, bounds: Rect) -> Rect:
+        rc: Rect
         if el == RectElement.area:
-            return rect >> vec
-        if el == RectElement.topleft:
-            return (rect >> vec) - vec
-        if el == RectElement.topright:
-            return (rect >> vec.proj_y) + vec.neg_y
-        if el == RectElement.bottomright:
-            return rect + vec
-        if el == RectElement.bottomleft:
-            return (rect >> vec.proj_x) + vec.neg_x
-        if el == RectElement.top:
-            return (rect >> vec.proj_y) - vec.proj_y
-        if el == RectElement.right:
-            return rect + vec.proj_x
-        if el == RectElement.bottom:
-            return rect + vec.proj_y
-        if el == RectElement.left:
-            return (rect >> vec.proj_x) - vec.proj_x
-        raise NotImplementedError(el)
+            rc = rect >> vec
+        elif el == RectElement.topleft:
+            rc = (rect >> vec) - vec
+        elif el == RectElement.topright:
+            rc = (rect >> vec.proj_y) + vec.neg_y
+        elif el == RectElement.bottomright:
+            rc = rect + vec
+        elif el == RectElement.bottomleft:
+            rc = (rect >> vec.proj_x) + vec.neg_x
+        elif el == RectElement.top:
+            rc = (rect >> vec.proj_y) - vec.proj_y
+        elif el == RectElement.right:
+            rc = rect + vec.proj_x
+        elif el == RectElement.bottom:
+            rc = rect + vec.proj_y
+        elif el == RectElement.left:
+            rc = (rect >> vec.proj_x) - vec.proj_x
+        elif el is None:
+            raise NotImplementedError(el)
+        rc.normalize()
+        lt, _, br, _ = rc.points
+        b_lt, _, b_br, _ = bounds.points
+        # if rect inside bounds v_lt.x,y > 0, v_br.x,y < 0
+        v_lt = lt - b_lt 
+        v_br = br - b_br
+        if v_lt.x < 0:  # left X bound
+            rc.x = b_lt.x
+            # when whole rectangle is moved its size doesn't change
+            rc.w += v_lt.x if el != RectElement.area else 0
+        elif v_br.x > 0:  # right X bound
+            rc.w -= v_br.x if el != RectElement.area else 0
+            rc.x = b_br.x - rc.w
+        if v_lt.y < 0:  # left Y bound
+            rc.y = b_lt.y
+            rc.h += v_lt.y if el != RectElement.area else 0
+        elif v_br.y > 0:  # right Y bound
+            rc.h -= v_br.y if el != RectElement.area else 0
+            rc.y = b_br.y - rc.h
+        return rc
 
     def on_mouse_event(self, event, x: int, y: int, flags, param):
         pt = Point(x, y)
@@ -143,13 +169,17 @@ class RectSelection:
                 self.moving = RectElement.bottomright
                 self.sel_rc = Rect(x, y, 0, 0)
         elif event == cv2.EVENT_MOUSEMOVE:
-            if flags & cv2.EVENT_FLAG_LBUTTON:
-                rc = self.transformed_rect(self.sel_rc, self.moving, pt - self.sel_pt)
-                self.draw_rect(rc)
+            if flags & cv2.EVENT_FLAG_LBUTTON and self.moving:
+                self.draw_rect(
+                    self.transformed_rect(self.sel_rc, self.moving,
+                                          pt - self.sel_pt, bounds=self.rc)
+                )
             else:
                 self.draw_rect(self.sel_rc, hilight=self.get_cursor_area(x, y))
-        elif event == cv2.EVENT_LBUTTONUP:
-            self.sel_rc = self.transformed_rect(self.sel_rc, self.moving, pt - self.sel_pt)
+        elif event == cv2.EVENT_LBUTTONUP and self.moving:
+            self.sel_rc = self.transformed_rect(
+                self.sel_rc, self.moving, pt - self.sel_pt, bounds=self.rc
+            )
             self.sel_rc.normalize()
         elif event == cv2.EVENT_RBUTTONDOWN:  # cancel operation
             self.moving = None
@@ -170,6 +200,8 @@ class RectSelection:
             tmp = self.img.copy()
             cv2.rectangle(tmp, tl, br, self.clr_white, thickness=-1)
             img = cv2.addWeighted(img, 0.9, tmp, 0.1, 0)
+        elif hilight is None:
+            pass  # linter
         elif hilight in sides:
             cv2.line(img, *sides[hilight], self.clr_white, thickness=2)
         elif hilight in corners:
