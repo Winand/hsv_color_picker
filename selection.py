@@ -108,6 +108,7 @@ class RectSelection:
                  register_mouse_callback: bool=True):
         self.moving: Optional[RectElement] = None
         self._last_cursor_area: Optional[RectElement] = None
+        self.update_callback = lambda rc: None
         self.wnd = window_name
         self.img = img
         self.rc = rect if isinstance(rect, Rect) else \
@@ -228,6 +229,7 @@ class RectSelection:
             cv2.circle(img, corners[hilight], 4, self.clr_white, thickness=-1)
 
         cv2.imshow(self.wnd, img)
+        self.update_callback(rc)
 
     def get_cursor_area(self, x: int, y: int) -> Optional[RectElement]:
         """
@@ -274,6 +276,9 @@ class RectSelection:
     @property
     def selection(self):
         return self.sel_rc
+
+    def set_update_callback(self, callback):
+        self.update_callback = callback
 
 
 if __name__ == '__main__':

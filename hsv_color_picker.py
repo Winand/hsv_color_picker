@@ -42,6 +42,7 @@ class SliderHSV:
         self.set_value(0)
         self.sel = RectSelection(window_name, self.sv, (0, 0, size, size),
                                  register_mouse_callback=False)
+        self.sel.set_update_callback(self.on_sel_update)
         cv2.setMouseCallback(window_name, self.on_mouse_event)
 
     def pos_to_hue(self, x):
@@ -49,6 +50,9 @@ class SliderHSV:
 
     def hue_to_pos(self, h):
         return int(h / 179 * (self.size - 1))
+
+    def pos_to_val(self, x):
+        return int(x / (self.size - 1) * 255)
 
     def vals_to_pos(self, h) -> tuple:
         """
@@ -65,7 +69,6 @@ class SliderHSV:
     def on_mouse_event(self, event, x, y, flags, param):
         # https://docs.opencv.org/4.x/db/d5b/tutorial_py_mouse_handling.html
         if self.sel.on_mouse_event(event, x, y, flags, param):
-            print(self.sel.selection)
             if event == cv2.EVENT_LBUTTONDOWN:
                 return
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -79,6 +82,10 @@ class SliderHSV:
                 self.sel.set_image(self.sv)
         elif event == cv2.EVENT_LBUTTONUP:
             self.sliding = None
+    
+    def on_sel_update(self, rect):
+        lt, _, br, _ = rect.points
+        print(lt, br, self.pos_to_val(lt[0]), self.pos_to_val(lt[1]))
 
     def draw_rect(self, hilight=None):
         pt1 = self._lower_color[::-1]
