@@ -104,7 +104,8 @@ class RectSelection:
     cursor_tolerance = 3
 
     def __init__(self, window_name: str, img: np.ndarray,
-                 rect: Union[Tuple[int, int, int, int], Rect]=None):
+                 rect: Union[Tuple[int, int, int, int], Rect]=None,
+                 register_mouse_callback: bool=True):
         self.moving: Optional[RectElement] = None
         self.wnd = window_name
         self.img = img
@@ -112,7 +113,8 @@ class RectSelection:
                   Rect(*(rect or (0, 0) + cv2.getWindowImageRect(self.wnd)[2:]))
         self.sel_rc = Rect()
         self.sel_pt = Point()  # point of mouse down event
-        cv2.setMouseCallback(window_name, self.on_mouse_event)
+        if register_mouse_callback:
+            cv2.setMouseCallback(window_name, self.on_mouse_event)
 
     @staticmethod
     def transformed_rect(rect, el: Optional[RectElement], vec: Vector, bounds: Rect) -> Rect:
@@ -158,7 +160,12 @@ class RectSelection:
             rc.y = b_br.y - rc.h
         return rc
 
-    def on_mouse_event(self, event, x: int, y: int, flags, param):
+    def on_mouse_event(self, event, x: int, y: int, flags, param) -> Optional[bool]:
+        """
+        Mouse callback.
+
+        Returns: True if accepted event or None
+        """
         pt = Point(x, y)
         if event == cv2.EVENT_LBUTTONDOWN:
             click_area = self.get_cursor_area(x, y)
@@ -170,6 +177,7 @@ class RectSelection:
                 if not self.moving:
                     self.moving = RectElement.bottomright
                     self.sel_rc = Rect(x, y, 0, 0)
+                return True
         elif event == cv2.EVENT_MOUSEMOVE:
             if flags & cv2.EVENT_FLAG_LBUTTON and self.moving:
                 self.draw_rect(
@@ -178,15 +186,18 @@ class RectSelection:
                 )
             else:
                 self.draw_rect(self.sel_rc, hilight=self.get_cursor_area(x, y))
+            return True
         elif event == cv2.EVENT_LBUTTONUP and self.moving:
             self.sel_rc = self.transformed_rect(
                 self.sel_rc, self.moving, pt - self.sel_pt, bounds=self.rc
             )
             self.sel_rc.normalize()
             self.moving = None
+            return True
         elif event == cv2.EVENT_RBUTTONDOWN:  # cancel operation
             self.draw_rect(self.sel_rc)
             self.moving = None
+            return True
 
     def draw_rect(self, rc: Rect, hilight: RectElement=None):
         img = self.img.copy()
