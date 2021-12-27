@@ -108,10 +108,8 @@ class RectSelection:
         self.moving: Optional[RectElement] = None
         self.wnd = window_name
         self.img = img
-        if isinstance(rect, Rect):
-            self.rc = rect
-        else:
-            self.rc = Rect(*(rect or (0, 0) + cv2.getWindowImageRect(window_name)[2:]))
+        self.rc = rect if isinstance(rect, Rect) else \
+                  Rect(*(rect or (0, 0) + cv2.getWindowImageRect(self.wnd)[2:]))
         self.sel_rc = Rect()
         self.sel_pt = Point()  # point of mouse down event
         cv2.setMouseCallback(window_name, self.on_mouse_event)
@@ -185,9 +183,10 @@ class RectSelection:
                 self.sel_rc, self.moving, pt - self.sel_pt, bounds=self.rc
             )
             self.sel_rc.normalize()
-        elif event == cv2.EVENT_RBUTTONDOWN:  # cancel operation
             self.moving = None
+        elif event == cv2.EVENT_RBUTTONDOWN:  # cancel operation
             self.draw_rect(self.sel_rc)
+            self.moving = None
 
     def draw_rect(self, rc: Rect, hilight: RectElement=None):
         img = self.img.copy()
