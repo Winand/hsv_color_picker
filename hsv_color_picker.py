@@ -13,6 +13,10 @@ class SliderHSV:
                            Hue 0-360, saturation/brightness 0-100%
     """
     sliding = None
+    last_cursor_area = ""
+    sliding_fixed_y = None
+    sliding_fixed_x = None
+    sliding_cursor_area = None
     font = cv2.FONT_HERSHEY_PLAIN
 
     def __init__(self, window_name, size: int=256, slider_height: int=16,
@@ -65,12 +69,52 @@ class SliderHSV:
                 self.set_value(self.pos_to_hue(x))
             else:
                 self.sliding = "sat-br"
-                self.pt = self.pos_to_val(x), self.pos_to_val(y)
+                self.sliding_fixed_x = None
+                self.sliding_fixed_y = None
+                self.sliding_cursor_area = cursor_area = self.get_cursor_area(x, y)
+                if cursor_area == 'left':
+                    self.sliding_fixed_y = self.vals_to_pos((self._lower_color[0],))[0]
+                elif cursor_area == 'top':
+                    self.sliding_fixed_x = self.vals_to_pos((self._lower_color[1],))[0]
+                elif cursor_area == 'right':
+                    self.sliding_fixed_y = self.vals_to_pos((self._upper_color[0],))[0]
+                elif cursor_area == 'bottom':
+                    self.sliding_fixed_x = self.vals_to_pos((self._upper_color[1],))[0]
+
+                if cursor_area in ('left', 'lefttop', 'top'):
+                    self.pt = self.vals_to_pos(self._upper_color[::-1])
+                elif cursor_area == 'righttop':
+                    self.pt = self.vals_to_pos((self._lower_color[1], self._upper_color[0]))
+                elif cursor_area in ('right', 'rightbottom', 'bottom'):
+                    self.pt = self.vals_to_pos(self._lower_color[::-1])
+                elif cursor_area == 'leftbottom':
+                    self.pt = self.vals_to_pos((self._upper_color[1], self._lower_color[0]))
+                else:
+                    self.pt = self.pos_to_val(x), self.pos_to_val(y)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self.sliding == "hue":
                 self.set_value(self.pos_to_hue(x))
             elif self.sliding == "sat-br":
-                self.set_rect(self.pt, (self.pos_to_val(x), self.pos_to_val(y)))
+                if self.sliding_fixed_x is not None:
+                    x = self.sliding_fixed_x
+                if self.sliding_fixed_y is not None:
+                    y = self.sliding_fixed_y
+                if self.sliding_cursor_area == 'rect':
+                    sx, sy = x - self.pt[0], y - self.pt[1]
+                    pt1 = self.vals_to_pos(self._lower_color[::-1])
+                    pt1 = (pt1[0] + sx, pt1[1] + sy)
+                    pt2 = self.vals_to_pos(self._upper_color[::-1])
+                    pt2 = (pt2[0] + sx, pt2[1] + sy)
+                    print(pt1, pt2, sx, sy)
+                    # FIXME: сдвиг считается от начальной точки, а сдвигается предыдущее положение прямоугольника
+                    self.set_rect(pt1, pt2, 'rect')
+                else:
+                    self.set_rect(self.pt, (self.pos_to_val(x), self.pos_to_val(y)), self.sliding_cursor_area)
+            else:
+                cursor_area = self.get_cursor_area(x, y)
+                if self.last_cursor_area != cursor_area:
+                    self.last_cursor_area = cursor_area
+                    self.draw_rect(hilight=cursor_area)
         elif event == cv2.EVENT_LBUTTONUP:
             if self.sliding == "sat-br":
                 if self.vals_to_pos(self.pt) == (x, y):
@@ -78,13 +122,67 @@ class SliderHSV:
                     self.set_rect((0, 0), (0, 0))
             self.sliding = None
 
-    def draw_rect(self):
+    def get_cursor_area(self, x, y) -> str:
+        ret = ""
+        pos1 = self.vals_to_pos(self._lower_color[::-1])
+        pos2 = self.vals_to_pos(self._upper_color[::-1])
+        if not self.pos_in_rect(x, y, allowance=2):
+            return ret
+        if abs(pos1[0] - x) <= 2:
+            ret = 'left'
+        elif abs(pos2[0] - x) <= 2:
+            ret = 'right'
+
+        if abs(pos1[1] - y) <= 2:
+            ret += 'top'
+        elif abs(pos2[1] - y) <= 2:
+            ret += 'bottom'
+        
+        if not ret and (pos1[0] <= x <= pos2[0] and
+                        pos1[1] <= y <= pos2[1]):
+            ret = 'rect'
+        return ret
+    
+    def pos_in_rect(self, x, y, allowance=0):
+        a = allowance
+        pos1 = self.vals_to_pos(self._lower_color[::-1])
+        pos2 = self.vals_to_pos(self._upper_color[::-1])
+        return (pos1[0] - a <= x <= pos2[0] + a and
+                pos1[1] - a <= y <= pos2[1] + a)
+
+    def draw_rect(self, hilight=None):
         pt1 = self._lower_color[::-1]
         pt2 = self._upper_color[::-1]
         pos_pt1 = self.vals_to_pos(pt1)
         pos_pt2 = self.vals_to_pos(pt2)
         sv = self.sv.copy()
         cv2.rectangle(sv, pos_pt1, pos_pt2, (255, 255, 255))
+        cv2.circle(sv, pos_pt1, 2, (255, 255, 255), thickness=-1)
+        cv2.circle(sv, (pos_pt2[0], pos_pt1[1]), 2, (255, 255, 255), thickness=-1)
+        cv2.circle(sv, pos_pt2, 2, (255, 255, 255), thickness=-1)
+        cv2.circle(sv, (pos_pt1[0], pos_pt2[1]), 2, (255, 255, 255), thickness=-1)
+
+        if hilight == 'rect':
+            tmp = self.sv.copy()
+            cv2.rectangle(tmp, pos_pt1, pos_pt2, (255, 255, 255), thickness=-1)
+            sv = cv2.addWeighted(sv, 0.9, tmp, 0.1, 0)
+        elif hilight == 'left':
+            cv2.line(sv, pos_pt1, (pos_pt1[0], pos_pt2[1]), (255, 255, 255), thickness=2)
+        elif hilight == 'top':
+            cv2.line(sv, pos_pt1, (pos_pt2[0], pos_pt1[1]), (255, 255, 255), thickness=2)
+        elif hilight == 'right':
+            cv2.line(sv, (pos_pt2[0], pos_pt1[1]), pos_pt2, (255, 255, 255), thickness=2)
+        elif hilight == 'bottom':
+            cv2.line(sv, (pos_pt1[0], pos_pt2[1]), pos_pt2, (255, 255, 255), thickness=2)
+        elif hilight == 'lefttop':
+            cv2.circle(sv, pos_pt1, 4, (255, 255, 255), thickness=-1)
+        elif hilight == 'righttop':
+            cv2.circle(sv, (pos_pt2[0], pos_pt1[1]), 4, (255, 255, 255), thickness=-1)
+        elif hilight == 'rightbottom':
+            cv2.circle(sv, pos_pt2, 4, (255, 255, 255), thickness=-1)
+        elif hilight == 'leftbottom':
+            cv2.circle(sv, (pos_pt1[0], pos_pt2[1]), 4, (255, 255, 255), thickness=-1)
+
         sh_y1 = (24, 12) if pt2[1] > pt1[1] else (-12, 0)
         sh_y2 = (0, -12) if pt2[1] > pt1[1] else (24, 12)
         c1 = 0 if pos_pt1[0] > self.size / 3 else (255, 255, 255)  # white text in left (darker) part
@@ -107,12 +205,12 @@ class SliderHSV:
                     self.font, 0.75, c2, lineType=cv2.LINE_AA)
         cv2.imshow(self.window_name, sv)
 
-    def set_rect(self, pt1, pt2):
+    def set_rect(self, pt1, pt2, hilight=None):
         pt1 = max(min(pt1[0], 255), 0), max(min(pt1[1], 255), 0)
         pt2 = max(min(pt2[0], 255), 0), max(min(pt2[1], 255), 0)
         self._lower_color = min(pt1[1], pt2[1]), min(pt1[0], pt2[0])
         self._upper_color = max(pt1[1], pt2[1]), max(pt1[0], pt2[0])
-        self.draw_rect()
+        self.draw_rect(hilight)
 
     def set_value(self, hue):
         hue = max(min(hue, 179), 0)
