@@ -107,6 +107,7 @@ class RectSelection:
                  rect: Union[Tuple[int, int, int, int], Rect]=None,
                  register_mouse_callback: bool=True):
         self.moving: Optional[RectElement] = None
+        self._last_cursor_area: Optional[RectElement] = None
         self.wnd = window_name
         self.img = img
         self.rc = rect if isinstance(rect, Rect) else \
@@ -184,9 +185,13 @@ class RectSelection:
                     self.transformed_rect(self.sel_rc, self.moving,
                                           pt - self.sel_pt, bounds=self.rc)
                 )
+                return True
             else:
-                self.draw_rect(self.sel_rc, hilight=self.get_cursor_area(x, y))
-            return True
+                cursor_area = self.get_cursor_area(x, y)
+                if cursor_area != self._last_cursor_area:
+                    self._last_cursor_area = cursor_area
+                    self.draw_rect(self.sel_rc, hilight=cursor_area)
+                    return True
         elif event == cv2.EVENT_LBUTTONUP and self.moving:
             self.sel_rc = self.transformed_rect(
                 self.sel_rc, self.moving, pt - self.sel_pt, bounds=self.rc
