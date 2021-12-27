@@ -163,11 +163,15 @@ class RectSelection:
     def on_mouse_event(self, event, x: int, y: int, flags, param):
         pt = Point(x, y)
         if event == cv2.EVENT_LBUTTONDOWN:
-            self.sel_pt = pt
-            self.moving = self.get_cursor_area(x, y)
-            if not self.moving:
-                self.moving = RectElement.bottomright
-                self.sel_rc = Rect(x, y, 0, 0)
+            click_area = self.get_cursor_area(x, y)
+            # click is allowed outside `rc` if it's a click on a part of rect,
+            # see `cursor_tolerance`
+            if click_area or self.pos_in_rect(x, y, self.rc):
+                self.sel_pt = pt
+                self.moving = click_area
+                if not self.moving:
+                    self.moving = RectElement.bottomright
+                    self.sel_rc = Rect(x, y, 0, 0)
         elif event == cv2.EVENT_MOUSEMOVE:
             if flags & cv2.EVENT_FLAG_LBUTTON and self.moving:
                 self.draw_rect(
@@ -217,7 +221,7 @@ class RectSelection:
         * area - cursor inside rect
         """
         tl, _, br, _ = self.sel_rc.points
-        if not self.pos_in_rect(x, y, allowance=self.cursor_tolerance):
+        if not self.pos_in_rect(x, y, self.sel_rc, allowance=self.cursor_tolerance):
             return
 
         ret = RectElement(0)
@@ -236,9 +240,9 @@ class RectSelection:
             return RectElement.area
         return ret
 
-    def pos_in_rect(self, x: int, y: int, allowance: int=0):
+    def pos_in_rect(self, x: int, y: int, rect: Rect, allowance: int=0):
         a = allowance
-        tl, _, br, _ = self.sel_rc.points
+        tl, _, br, _ = rect.points
         return (tl.x - a <= x <= br.x + a and
                 tl.y - a <= y <= br.y + a)
 
