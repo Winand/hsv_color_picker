@@ -2,6 +2,7 @@ import unittest as ut
 
 from cv_utils import Align, Vector, alignment_vector
 from hsv_color_picker import SliderHSV
+from selection import RectSelection, Rect, RectElement
 
 
 class Test(ut.TestCase):
@@ -31,6 +32,16 @@ class TestVectors(ut.TestCase):
     def test_vectors_equal(self):
         self.assertEqual(Vector(3, 4), Vector(3, 4))
         self.assertNotEqual(Vector(-3, -4), Vector(3, 4))
+    
+    def test_rect_resize(self):
+        bs = Rect(w=99, h=99)
+        self.assertEqual(RectSelection.transformed_rect(
+            Rect(16, 16, 1, 1), RectElement.bottomright, Vector(x=-1, y=-1), bs
+        ), Rect(15, 15, 2, 2))
+        # right side becomes left w/ x=16, left becomes right w/ x=16+1
+        self.assertEqual(RectSelection.transformed_rect(
+            Rect(16, 16, 1, 1), RectElement.left, Vector(x=1), bs
+        ), Rect(16, 16, 2, 1))
 
 
 class TestTextUtils(ut.TestCase):
