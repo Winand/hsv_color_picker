@@ -1,10 +1,8 @@
-from typing import Iterable, Tuple
-
 import cv2
 import numpy as np
 
 from .cv_utils import put_text_block, Align, def_font
-from .selection import Rect, RectSelection, Point, Vector
+from .selection import Rect, RectSelection, Vector
 
 
 class SliderHSV:
@@ -25,7 +23,7 @@ class SliderHSV:
     font_params = {**def_font, 'fontScale': 0.75}
     font = cv2.FONT_HERSHEY_PLAIN
 
-    def __init__(self, window_name, size: int=256, slider_height: int=16,
+    def __init__(self, window_name: str, size: int=256, slider_height: int=16,
                  normalized_display=False):
         self.window_name = window_name
         self.size = size  # px
