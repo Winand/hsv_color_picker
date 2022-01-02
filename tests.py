@@ -51,13 +51,15 @@ class TestTextUtils(ut.TestCase):
         self.assertEqual(alignment_vector(Align.top, 16, 16),
                          Vector(-8, 0))
         self.assertEqual(alignment_vector(Align.right, 16, 16),
-                         Vector(-16, -8))
+                         Vector(-15, -8))
         self.assertEqual(alignment_vector(Align.bottom, 16, 16),
-                         Vector(-8, -16))
+                         Vector(-8, -15))
         self.assertEqual(alignment_vector(Align.center, 16, 16),
                          Vector(-8, -8))
+        self.assertEqual(alignment_vector(Align.bottom | Align.right, 2, 2),
+                         Vector(-1, -1))
         self.assertEqual(alignment_vector(Align.bottom | Align.right, 16, 16),
-                         Vector(-16, -16))
+                         Vector(-15, -15))
 
 
 if __name__ == '__main__':
