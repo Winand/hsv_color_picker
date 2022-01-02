@@ -1,6 +1,8 @@
 import unittest as ut
 
+from cv_utils import Align, Vector, alignment_vector
 from hsv_color_picker import SliderHSV
+
 
 class Test(ut.TestCase):
     def test_hue_conversion(self):
@@ -23,6 +25,29 @@ class Test(ut.TestCase):
         self.assertEqual(w.shift_hue(10), 1)
         w.hue = 0
         self.assertEqual(w.shift_hue(-10), 170)
+
+
+class TestVectors(ut.TestCase):
+    def test_vectors_equal(self):
+        self.assertEqual(Vector(3, 4), Vector(3, 4))
+        self.assertNotEqual(Vector(-3, -4), Vector(3, 4))
+
+
+class TestTextUtils(ut.TestCase):
+    def test_alignment(self):
+        self.assertEqual(alignment_vector(Align.left, 16, 16),
+                         Vector(0, -8))
+        self.assertEqual(alignment_vector(Align.top, 16, 16),
+                         Vector(-8, 0))
+        self.assertEqual(alignment_vector(Align.right, 16, 16),
+                         Vector(-16, -8))
+        self.assertEqual(alignment_vector(Align.bottom, 16, 16),
+                         Vector(-8, -16))
+        self.assertEqual(alignment_vector(Align.center, 16, 16),
+                         Vector(-8, -8))
+        self.assertEqual(alignment_vector(Align.bottom | Align.right, 16, 16),
+                         Vector(-16, -16))
+
 
 if __name__ == '__main__':
     ut.main()
