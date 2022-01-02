@@ -88,10 +88,15 @@ class SliderHSV:
     
     def on_sel_update(self, rect: Rect, img: np.ndarray):
         lt, _, br, _ = rect.points
-        text = f"Sg.{self.pos_to_val(lt.y)}\nBg.{self.pos_to_val(lt.x)}"
+        lsat, rsat = self.pos_to_val(lt.y), self.pos_to_val(br.y)
+        lbri, rbri = self.pos_to_val(lt.x), self.pos_to_val(br.x)
+        if self.normalized_display:
+            lsat, rsat = f"{lsat / 255:.1%}", f"{rsat / 255:.1%}"
+            lbri, rbri = f"{lbri / 255:.1%}", f"{rbri / 255:.1%}"
+        text = f"S.{lsat}\nB.{lbri}"
         color = 0 if lt.x > self.size / 3 else (255, 255, 255)
         put_text_block(img, text, lt + Vector(y=1), self.font_params, color)
-        text = f"Sg.{self.pos_to_val(br.y)}\nBg.{self.pos_to_val(br.x)}"
+        text = f"S.{rsat}\nB.{rbri}"
         color = 0 if br.x - 32 > self.size / 3 else (255, 255, 255)
         put_text_block(img, text, br, self.font_params, color,
                        align=Align.bottom | Align.right)
