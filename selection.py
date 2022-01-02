@@ -3,7 +3,7 @@ see also selectROI
 """
 from dataclasses import dataclass, astuple
 from enum import Flag, auto
-from typing import Optional, Tuple, NamedTuple, Union
+from typing import Optional, Tuple, NamedTuple, Union, Callable
 
 import cv2
 import numpy as np
@@ -109,7 +109,7 @@ class RectSelection:
 
     def __init__(self, window_name: str, img: np.ndarray,
                  rect: Union[Tuple[int, int, int, int], Rect]=None,
-                 register_mouse_callback: bool=True):
+                 update_callback: Callable[[Rect, np.ndarray], None]=None):
         self.moving: Optional[RectElement] = None
         self._last_cursor_area: Optional[RectElement] = None
         self.update_callback = lambda rc, img: None
@@ -119,8 +119,9 @@ class RectSelection:
                   Rect(*(rect or (0, 0) + cv2.getWindowImageRect(self.wnd)[2:]))
         self.sel_rc = Rect()
         self.sel_pt = Point()  # point of mouse down event
-        if register_mouse_callback:
-            cv2.setMouseCallback(window_name, self.on_mouse_event)
+        cv2.setMouseCallback(window_name, self.on_mouse_event)
+        if update_callback:
+            self.set_update_callback(update_callback)
 
     @staticmethod
     def transformed_rect(rect, el: Optional[RectElement], vec: Vector, bounds: Rect) -> Rect:
@@ -281,17 +282,17 @@ class RectSelection:
     def selection(self):
         return self.sel_rc
 
-    def set_update_callback(self, callback):
+    def set_update_callback(self, callback: Callable[[Rect, np.ndarray], None]):
+        "Function to call just before updated rectangle is displayed"
         self.update_callback = callback
 
 
 if __name__ == '__main__':
     sel = None
 
-    img = cv2.imread("samples/messi5.jpg")
+    img = cv2.imread("../samples/messi5.jpg")
     cv2.imshow("test_wnd", img)
     sel = RectSelection("test_wnd", img)
-    # cv2.setMouseCallback("test_wnd", on_mouse_event)
     while True:
         k = cv2.waitKey(20) & 0xFF
         if k == 27:
