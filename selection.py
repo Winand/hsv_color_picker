@@ -119,10 +119,12 @@ class RectSelection:
 
     def __init__(self, window_name: str, img: np.ndarray,
                  rect: Union[Tuple[int, int, int, int], Rect]=None,
-                 update_callback: Callable[[Rect, np.ndarray], None]=None):
+                 draw_callback: Callable[[Rect, np.ndarray], None]=None,
+                 selection_callback: Callable[[Rect], None]=None):
         self.moving: Optional[RectElement] = None
         self._last_cursor_area: Optional[RectElement] = None
-        self.update_callback = lambda rc, img: None
+        self.draw_callback = lambda rc, img: None
+        self.selection_callback = lambda rc: None
         self.wnd = window_name
         self.img = img
         self.rc = rect if isinstance(rect, Rect) else \
@@ -130,8 +132,10 @@ class RectSelection:
         self.sel_rc = Rect()
         self.sel_pt = Point()  # point of mouse down event
         cv2.setMouseCallback(window_name, self.on_mouse_event)
-        if update_callback:
-            self.set_update_callback(update_callback)
+        if draw_callback:
+            self.set_draw_callback(draw_callback)
+        if selection_callback:
+            self.set_selection_callback(selection_callback)
 
     @staticmethod
     def transformed_rect(rect: Rect, el: Optional[RectElement], vec: Vector,
@@ -210,15 +214,16 @@ class RectSelection:
                     self.draw_rect(self.sel_rc, hilight=cursor_area)
                     return True
         elif event == cv2.EVENT_LBUTTONUP and self.moving:
-            self.sel_rc = self.transformed_rect(
+            self.set_selection(self.transformed_rect(
                 self.sel_rc, self.moving, pt - self.sel_pt, bounds=self.rc
-            )
+            ))
             self.moving = None
             self._last_cursor_area = None  # forced update
             return True
         elif event == cv2.EVENT_RBUTTONDOWN:  # cancel operation
             self.moving = None
             self.draw_rect(self.sel_rc, hilight=self.get_cursor_area(x, y))
+            self.set_selection(self.sel_rc)  # forced update
             return True
 
     def draw_rect(self, rc: Rect, hilight: RectElement=None):
@@ -246,7 +251,7 @@ class RectSelection:
         elif hilight in corners:
             cv2.circle(img, corners[hilight], 4, self.clr_white, thickness=-1)
 
-        self.update_callback(rc, img)
+        self.draw_callback(rc, img)
         cv2.imshow(self.wnd, img)
 
     def get_cursor_area(self, x: int, y: int) -> Optional[RectElement]:
@@ -295,9 +300,17 @@ class RectSelection:
     def selection(self):
         return self.sel_rc
 
-    def set_update_callback(self, callback: Callable[[Rect, np.ndarray], None]):
+    def set_draw_callback(self, callback: Callable[[Rect, np.ndarray], None]):
         "Function to call just before updated rectangle is displayed"
-        self.update_callback = callback
+        self.draw_callback = callback
+
+    def set_selection_callback(self, callback: Callable[[Rect], None]):
+        "Function to call when new rect is selected"
+        self.selection_callback = callback
+
+    def set_selection(self, rc: Rect):
+        self.sel_rc = rc
+        self.selection_callback(rc)
 
 
 if __name__ == '__main__':

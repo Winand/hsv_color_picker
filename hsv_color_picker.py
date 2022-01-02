@@ -47,7 +47,8 @@ class SliderHSV:
         im_stub = np.zeros(1)
         cv2.imshow(window_name, im_stub)
         self.sel = RectSelection(window_name, im_stub, (0, 0, size, size),
-                                 update_callback=self.on_sel_update)
+                                 draw_callback=self.on_sel_update,
+                                 selection_callback=self.on_selection)
         cv2.setMouseCallback(window_name, self.on_mouse_event)
         self.set_value(0)
 
@@ -96,6 +97,13 @@ class SliderHSV:
         color = 0 if br.x - 32 > self.size / 3 else (255, 255, 255)
         put_text_block(img, text, br, self.font_params, color,
                        align=Align.bottom | Align.right)
+
+    def on_selection(self, rc: Rect):
+        lt, _, rb, _ = rc.points
+        # X is brightness, Y is saturation
+        self._lower_color = [self.pos_to_val(lt.y), self.pos_to_val(lt.x)]
+        self._upper_color = [self.pos_to_val(rb.y), self.pos_to_val(rb.x)]
+        print(self.lower_color, self.upper_color)
 
     def set_value(self, hue):
         hue = max(min(hue, 179), 0)
