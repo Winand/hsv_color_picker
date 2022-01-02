@@ -15,10 +15,10 @@ class Point(NamedTuple):
     x: int = 0
     y: int = 0
 
-    def __add__(self, other: "Point"):
+    def __add__(self, other: "Point") -> "Vector":
         return Vector(self.x + other.x, self.y + other.y)
 
-    def __sub__(self, other: "Point"):
+    def __sub__(self, other: "Point") -> "Vector":
         return Vector(self.x - other.x, self.y - other.y)
 
 
@@ -44,6 +44,9 @@ class Vector(Point):
     def neg_y(self):
         "Set Y to -Y"
         return Vector(self.x, -self.y)
+
+    def __eq__(self, other: "Vector") -> bool:
+        return self.x == other.x and self.y == other.y
 
 
 # 3.7+ https://jerrynsh.com/all-you-need-to-know-about-data-classes-in-python/
