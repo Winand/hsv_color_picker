@@ -24,7 +24,6 @@ while True:
         mask = mask1 + mask2
     else:
         mask = cv.inRange(hsv, np.uint8([0,0,0]), np.uint8(upper_color))
-    print(mask.shape, hsv.shape)
     # Bitwise-AND mask and original image
     res = cv.bitwise_and(frame, frame, mask=mask)
     cv.imshow('frame',frame)

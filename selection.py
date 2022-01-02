@@ -213,7 +213,6 @@ class RectSelection:
             self.sel_rc = self.transformed_rect(
                 self.sel_rc, self.moving, pt - self.sel_pt, bounds=self.rc
             )
-            self.sel_rc.normalize()
             self.moving = None
             self._last_cursor_area = None  # forced update
             return True

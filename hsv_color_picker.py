@@ -81,11 +81,9 @@ class SliderHSV:
             if y > self.size:
                 self.sliding = "hue"
                 self.set_value(self.pos_to_hue(x))
-                self.sel.set_image(self.sv)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self.sliding == "hue":
                 self.set_value(self.pos_to_hue(x))
-                self.sel.set_image(self.sv)
         elif event == cv2.EVENT_LBUTTONUP:
             self.sliding = None
     
