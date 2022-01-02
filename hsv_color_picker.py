@@ -1,7 +1,10 @@
+from typing import Iterable, Tuple
+
 import cv2
 import numpy as np
 
-from selection import RectSelection
+from cv_utils import put_text_block, Align, def_font
+from selection import Rect, RectSelection, Point, Vector
 
 
 class SliderHSV:
@@ -19,6 +22,7 @@ class SliderHSV:
     sliding_fixed_y = None
     sliding_fixed_x = None
     sliding_cursor_area = None
+    font_params = {**def_font, 'fontScale': 0.75}
     font = cv2.FONT_HERSHEY_PLAIN
 
     def __init__(self, window_name, size: int=256, slider_height: int=16,
@@ -39,11 +43,13 @@ class SliderHSV:
             (0, i, j) for i in np.linspace(0., 255., self.size)
                       for j in np.linspace(0., 255., self.size)
         ]).reshape(self.size, self.size, 3)
-        self.set_value(0)
-        self.sel = RectSelection(window_name, self.sv, (0, 0, size, size),
-                                 register_mouse_callback=False)
-        self.sel.set_update_callback(self.on_sel_update)
+
+        sv = self.create_sat_br_rect(0)
+        cv2.imshow(window_name, sv)
+        self.sel = RectSelection(window_name, sv, (0, 0, size, size),
+                                 update_callback=self.on_sel_update)
         cv2.setMouseCallback(window_name, self.on_mouse_event)
+        self.set_value(0)
 
     def pos_to_hue(self, x):
         return int(x / (self.size - 1) * 179)
@@ -83,64 +89,15 @@ class SliderHSV:
         elif event == cv2.EVENT_LBUTTONUP:
             self.sliding = None
     
-    def on_sel_update(self, rect):
+    def on_sel_update(self, rect: Rect, img: np.ndarray):
         lt, _, br, _ = rect.points
-        print(lt, br, self.pos_to_val(lt[0]), self.pos_to_val(lt[1]))
-
-    def draw_rect(self, hilight=None):
-        pt1 = self._lower_color[::-1]
-        pt2 = self._upper_color[::-1]
-        pos_pt1 = self.vals_to_pos(pt1)
-        pos_pt2 = self.vals_to_pos(pt2)
-        sv = self.sv.copy()
-        cv2.rectangle(sv, pos_pt1, pos_pt2, (255, 255, 255))
-        cv2.circle(sv, pos_pt1, 2, (255, 255, 255), thickness=-1)
-        cv2.circle(sv, (pos_pt2[0], pos_pt1[1]), 2, (255, 255, 255), thickness=-1)
-        cv2.circle(sv, pos_pt2, 2, (255, 255, 255), thickness=-1)
-        cv2.circle(sv, (pos_pt1[0], pos_pt2[1]), 2, (255, 255, 255), thickness=-1)
-
-        if hilight == 'rect':
-            tmp = self.sv.copy()
-            cv2.rectangle(tmp, pos_pt1, pos_pt2, (255, 255, 255), thickness=-1)
-            sv = cv2.addWeighted(sv, 0.9, tmp, 0.1, 0)
-        elif hilight == 'left':
-            cv2.line(sv, pos_pt1, (pos_pt1[0], pos_pt2[1]), (255, 255, 255), thickness=2)
-        elif hilight == 'top':
-            cv2.line(sv, pos_pt1, (pos_pt2[0], pos_pt1[1]), (255, 255, 255), thickness=2)
-        elif hilight == 'right':
-            cv2.line(sv, (pos_pt2[0], pos_pt1[1]), pos_pt2, (255, 255, 255), thickness=2)
-        elif hilight == 'bottom':
-            cv2.line(sv, (pos_pt1[0], pos_pt2[1]), pos_pt2, (255, 255, 255), thickness=2)
-        elif hilight == 'lefttop':
-            cv2.circle(sv, pos_pt1, 4, (255, 255, 255), thickness=-1)
-        elif hilight == 'righttop':
-            cv2.circle(sv, (pos_pt2[0], pos_pt1[1]), 4, (255, 255, 255), thickness=-1)
-        elif hilight == 'rightbottom':
-            cv2.circle(sv, pos_pt2, 4, (255, 255, 255), thickness=-1)
-        elif hilight == 'leftbottom':
-            cv2.circle(sv, (pos_pt1[0], pos_pt2[1]), 4, (255, 255, 255), thickness=-1)
-
-        sh_y1 = (24, 12) if pt2[1] > pt1[1] else (-12, 0)
-        sh_y2 = (0, -12) if pt2[1] > pt1[1] else (24, 12)
-        c1 = 0 if pos_pt1[0] > self.size / 3 else (255, 255, 255)  # white text in left (darker) part
-        c2 = 0 if pos_pt2[0] - 45 > self.size / 3 else (255, 255, 255)
-        if self.normalized_display:
-            pt1 = f"{pt1[0] / 255:.1%}", f"{pt1[1] / 255:.1%}"
-            pt2 = f"{pt2[0] / 255:.1%}", f"{pt2[1] / 255:.1%}"
-        cv2.putText(sv, f"S.{pt1[1]}", (pos_pt1[0] + 1, pos_pt1[1] + sh_y1[1]),
-                    self.font, 0.75, c1, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"B.{pt1[0]}", (pos_pt1[0] + 1, pos_pt1[1] + sh_y1[0]),
-                    self.font, 0.75, c1, lineType=cv2.LINE_AA)
-        pt21_text = f"S.{pt2[1]}"
-        # Baseline info https://stackoverflow.com/q/51285616
-        (w, _), _ = cv2.getTextSize(pt21_text, self.font, 0.75, thickness=1)
-        cv2.putText(sv, pt21_text, (pos_pt2[0] - w, pos_pt2[1] + sh_y2[1] - 1),
-                    self.font, 0.75, c2, lineType=cv2.LINE_AA)
-        pt20_text = f"B.{pt2[0]}"
-        (w, _), _ = cv2.getTextSize(pt20_text, self.font, 0.75, thickness=1)
-        cv2.putText(sv, pt20_text, (pos_pt2[0] - w, pos_pt2[1] + sh_y2[0] - 1),
-                    self.font, 0.75, c2, lineType=cv2.LINE_AA)
-        cv2.imshow(self.window_name, sv)
+        text = f"Sg.{self.pos_to_val(lt.y)}\nBg.{self.pos_to_val(lt.x)}"
+        color = 0 if lt.x > self.size / 3 else (255, 255, 255)
+        put_text_block(img, text, lt + Vector(y=1), self.font_params, color)
+        text = f"Sg.{self.pos_to_val(br.y)}\nBg.{self.pos_to_val(br.x)}"
+        color = 0 if br.x - 32 > self.size / 3 else (255, 255, 255)
+        put_text_block(img, text, br, self.font_params, color,
+                       align=Align.bottom | Align.right)
 
     def set_value(self, hue):
         hue = max(min(hue, 179), 0)
@@ -150,7 +107,7 @@ class SliderHSV:
         disp_hue = f"{hue/179*360:.1f}" if self.normalized_display else str(hue)
         cv2.putText(self.sv, f"Hue {disp_hue}", (0, self.size + self.slider_height - 2), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
         self.hue = hue
-        self.draw_rect()
+        self.sel.set_image(self.sv)
 
     def create_sat_br_rect(self, hue):
         self.tpl_hsv[:, :, 0] = hue
