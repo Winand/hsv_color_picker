@@ -64,7 +64,8 @@ class Rect:
         Return coordinates of top-left, top-right, bottom-right and bottom-left corners as Points
         """
         x, y, w, h = astuple(self)
-        return Point(x, y), Point(x + w, y), Point(x + w, y + h), Point(x, y + h)
+        return Point(x, y), Point(x + w - 1, y), \
+               Point(x + w - 1, y + h - 1), Point(x, y + h - 1)
 
     def __rshift__(self, other: Vector) -> "Rect":
         "Translate"
@@ -153,13 +154,13 @@ class RectSelection:
             rc.w += v_lt.x if el != RectElement.area else 0
         elif v_br.x > 0:  # right X bound
             rc.w -= v_br.x if el != RectElement.area else 0
-            rc.x = b_br.x - rc.w
+            rc.x = b_br.x - rc.w + 1
         if v_lt.y < 0:  # left Y bound
             rc.y = b_lt.y
             rc.h += v_lt.y if el != RectElement.area else 0
         elif v_br.y > 0:  # right Y bound
             rc.h -= v_br.y if el != RectElement.area else 0
-            rc.y = b_br.y - rc.h
+            rc.y = b_br.y - rc.h + 1
         return rc
 
     def on_mouse_event(self, event, x: int, y: int, flags, param) -> Optional[bool]:
@@ -178,7 +179,7 @@ class RectSelection:
                 self.moving = click_area
                 if not self.moving:
                     self.moving = RectElement.bottomright
-                    self.sel_rc = Rect(x, y, 0, 0)
+                    self.sel_rc = Rect(x, y, 0, 0)  # FIXME: w=1, h=1 ?
                 return True
         elif event == cv2.EVENT_MOUSEMOVE:
             if flags & cv2.EVENT_FLAG_LBUTTON and self.moving:
