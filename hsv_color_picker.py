@@ -44,9 +44,9 @@ class SliderHSV:
                       for j in np.linspace(0., 255., self.size)
         ]).reshape(self.size, self.size, 3)
 
-        sv = self.create_sat_br_rect(0)
-        cv2.imshow(window_name, sv)
-        self.sel = RectSelection(window_name, sv, (0, 0, size, size),
+        im_stub = np.zeros(1)
+        cv2.imshow(window_name, im_stub)
+        self.sel = RectSelection(window_name, im_stub, (0, 0, size, size),
                                  update_callback=self.on_sel_update)
         cv2.setMouseCallback(window_name, self.on_mouse_event)
         self.set_value(0)
