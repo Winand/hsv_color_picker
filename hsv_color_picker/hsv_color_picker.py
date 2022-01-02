@@ -1,5 +1,10 @@
+from typing import Iterable, Tuple
+
 import cv2
 import numpy as np
+
+from .cv_utils import put_text_block, Align, def_font
+from .selection import Rect, RectSelection, Point, Vector
 
 
 class SliderHSV:
@@ -13,6 +18,11 @@ class SliderHSV:
                            Hue 0-360, saturation/brightness 0-100%
     """
     sliding = None
+    last_cursor_area = ""
+    sliding_fixed_y = None
+    sliding_fixed_x = None
+    sliding_cursor_area = None
+    font_params = {**def_font, 'fontScale': 0.75}
     font = cv2.FONT_HERSHEY_PLAIN
 
     def __init__(self, window_name, size: int=256, slider_height: int=16,
@@ -33,8 +43,14 @@ class SliderHSV:
             (0, i, j) for i in np.linspace(0., 255., self.size)
                       for j in np.linspace(0., 255., self.size)
         ]).reshape(self.size, self.size, 3)
-        self.set_value(0)
+
+        im_stub = np.zeros(1)
+        cv2.imshow(window_name, im_stub)
+        self.sel = RectSelection(window_name, im_stub, (0, 0, size, size),
+                                 draw_callback=self.on_sel_update,
+                                 selection_callback=self.on_selection)
         cv2.setMouseCallback(window_name, self.on_mouse_event)
+        self.set_value(0)
 
     def pos_to_hue(self, x):
         return int(x / (self.size - 1) * 179)
@@ -59,60 +75,34 @@ class SliderHSV:
 
     def on_mouse_event(self, event, x, y, flags, param):
         # https://docs.opencv.org/4.x/db/d5b/tutorial_py_mouse_handling.html
+        if self.sel.on_mouse_event(event, x, y, flags, param):
+            if event == cv2.EVENT_LBUTTONDOWN:
+                return
         if event == cv2.EVENT_LBUTTONDOWN:
             if y > self.size:
                 self.sliding = "hue"
                 self.set_value(self.pos_to_hue(x))
-            else:
-                self.sliding = "sat-br"
-                self.pt = self.pos_to_val(x), self.pos_to_val(y)
         elif event == cv2.EVENT_MOUSEMOVE:
             if self.sliding == "hue":
                 self.set_value(self.pos_to_hue(x))
-            elif self.sliding == "sat-br":
-                self.set_rect(self.pt, (self.pos_to_val(x), self.pos_to_val(y)))
         elif event == cv2.EVENT_LBUTTONUP:
-            if self.sliding == "sat-br":
-                if self.vals_to_pos(self.pt) == (x, y):
-                    # Single click resets range (hide rect)
-                    self.set_rect((0, 0), (0, 0))
             self.sliding = None
+    
+    def on_sel_update(self, rect: Rect, img: np.ndarray):
+        lt, _, br, _ = rect.points
+        text = f"Sg.{self.pos_to_val(lt.y)}\nBg.{self.pos_to_val(lt.x)}"
+        color = 0 if lt.x > self.size / 3 else (255, 255, 255)
+        put_text_block(img, text, lt + Vector(y=1), self.font_params, color)
+        text = f"Sg.{self.pos_to_val(br.y)}\nBg.{self.pos_to_val(br.x)}"
+        color = 0 if br.x - 32 > self.size / 3 else (255, 255, 255)
+        put_text_block(img, text, br, self.font_params, color,
+                       align=Align.bottom | Align.right)
 
-    def draw_rect(self):
-        pt1 = self._lower_color[::-1]
-        pt2 = self._upper_color[::-1]
-        pos_pt1 = self.vals_to_pos(pt1)
-        pos_pt2 = self.vals_to_pos(pt2)
-        sv = self.sv.copy()
-        cv2.rectangle(sv, pos_pt1, pos_pt2, (255, 255, 255))
-        sh_y1 = (24, 12) if pt2[1] > pt1[1] else (-12, 0)
-        sh_y2 = (0, -12) if pt2[1] > pt1[1] else (24, 12)
-        c1 = 0 if pos_pt1[0] > self.size / 3 else (255, 255, 255)  # white text in left (darker) part
-        c2 = 0 if pos_pt2[0] - 45 > self.size / 3 else (255, 255, 255)
-        if self.normalized_display:
-            pt1 = f"{pt1[0] / 255:.1%}", f"{pt1[1] / 255:.1%}"
-            pt2 = f"{pt2[0] / 255:.1%}", f"{pt2[1] / 255:.1%}"
-        cv2.putText(sv, f"S.{pt1[1]}", (pos_pt1[0] + 1, pos_pt1[1] + sh_y1[1]),
-                    self.font, 0.75, c1, lineType=cv2.LINE_AA)
-        cv2.putText(sv, f"B.{pt1[0]}", (pos_pt1[0] + 1, pos_pt1[1] + sh_y1[0]),
-                    self.font, 0.75, c1, lineType=cv2.LINE_AA)
-        pt21_text = f"S.{pt2[1]}"
-        # Baseline info https://stackoverflow.com/q/51285616
-        (w, _), _ = cv2.getTextSize(pt21_text, self.font, 0.75, thickness=1)
-        cv2.putText(sv, pt21_text, (pos_pt2[0] - w, pos_pt2[1] + sh_y2[1] - 1),
-                    self.font, 0.75, c2, lineType=cv2.LINE_AA)
-        pt20_text = f"B.{pt2[0]}"
-        (w, _), _ = cv2.getTextSize(pt20_text, self.font, 0.75, thickness=1)
-        cv2.putText(sv, pt20_text, (pos_pt2[0] - w, pos_pt2[1] + sh_y2[0] - 1),
-                    self.font, 0.75, c2, lineType=cv2.LINE_AA)
-        cv2.imshow(self.window_name, sv)
-
-    def set_rect(self, pt1, pt2):
-        pt1 = max(min(pt1[0], 255), 0), max(min(pt1[1], 255), 0)
-        pt2 = max(min(pt2[0], 255), 0), max(min(pt2[1], 255), 0)
-        self._lower_color = min(pt1[1], pt2[1]), min(pt1[0], pt2[0])
-        self._upper_color = max(pt1[1], pt2[1]), max(pt1[0], pt2[0])
-        self.draw_rect()
+    def on_selection(self, rc: Rect):
+        lt, _, rb, _ = rc.points
+        # X is brightness, Y is saturation
+        self._lower_color = [self.pos_to_val(lt.y), self.pos_to_val(lt.x)]
+        self._upper_color = [self.pos_to_val(rb.y), self.pos_to_val(rb.x)]
 
     def set_value(self, hue):
         hue = max(min(hue, 179), 0)
@@ -122,7 +112,7 @@ class SliderHSV:
         disp_hue = f"{hue/179*360:.1f}" if self.normalized_display else str(hue)
         cv2.putText(self.sv, f"Hue {disp_hue}", (0, self.size + self.slider_height - 2), cv2.FONT_HERSHEY_PLAIN, 1, 0, lineType=cv2.LINE_AA)
         self.hue = hue
-        self.draw_rect()
+        self.sel.set_image(self.sv)
 
     def create_sat_br_rect(self, hue):
         self.tpl_hsv[:, :, 0] = hue

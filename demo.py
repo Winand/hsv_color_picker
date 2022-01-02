@@ -4,7 +4,7 @@ import numpy as np
 from hsv_color_picker import SliderHSV
 
 
-color_slider = SliderHSV("HSV slider")
+color_slider = SliderHSV("HSV slider", normalized_display=True)
 cap = cv.VideoCapture(0, cv.CAP_DSHOW)
 hue_width = 10
 while True:
