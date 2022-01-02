@@ -3,7 +3,7 @@ from enum import Flag, auto
 import cv2
 import numpy as np
 
-from selection import Point, Vector
+from .selection import Point, Vector
 
 def_font = {'fontFace': cv2.FONT_HERSHEY_PLAIN, 'fontScale': 1, 'thickness': 1}
 

@@ -3,8 +3,8 @@ from typing import Iterable, Tuple
 import cv2
 import numpy as np
 
-from cv_utils import put_text_block, Align, def_font
-from selection import Rect, RectSelection, Point, Vector
+from .cv_utils import put_text_block, Align, def_font
+from .selection import Rect, RectSelection, Point, Vector
 
 
 class SliderHSV:
@@ -103,7 +103,6 @@ class SliderHSV:
         # X is brightness, Y is saturation
         self._lower_color = [self.pos_to_val(lt.y), self.pos_to_val(lt.x)]
         self._upper_color = [self.pos_to_val(rb.y), self.pos_to_val(rb.x)]
-        print(self.lower_color, self.upper_color)
 
     def set_value(self, hue):
         hue = max(min(hue, 179), 0)

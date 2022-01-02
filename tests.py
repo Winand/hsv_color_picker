@@ -1,8 +1,8 @@
 import unittest as ut
 
-from cv_utils import Align, Vector, alignment_vector
 from hsv_color_picker import SliderHSV
-from selection import RectSelection, Rect, RectElement
+from hsv_color_picker.cv_utils import Align, Vector, alignment_vector
+from hsv_color_picker.selection import Rect, RectElement, RectSelection
 
 
 class Test(ut.TestCase):
