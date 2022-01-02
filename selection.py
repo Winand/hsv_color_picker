@@ -86,13 +86,20 @@ class Rect:
         return self.w != 0 and self.h != 0
 
     def normalize(self):
-        "Flip coordinates if width or height is negative"
-        if self.w < 0:
-            self.x += self.w
-            self.w = -self.w
-        if self.h < 0:
-            self.y += self.h
-            self.h = -self.h
+        """
+        Flip coordinates if width or height is zero or negative.
+
+        NOTE: Valid rectangle cannot have zero size, eg.
+        - If `w==1` and we move right side 1px to the left, `w` becomes 0.
+        - This means that we need to move left `x` 1px to the left
+        - Now `w` becomes 2 'cause left and right sides are on adjacent pixels
+        """
+        if self.w <= 0:
+            self.x += self.w - 1
+            self.w = -self.w + 2
+        if self.h <= 0:
+            self.y += self.h - 1
+            self.h = -self.h + 2
 
 
 # https://docs.python.org/3/library/enum.html#flag
@@ -127,7 +134,8 @@ class RectSelection:
             self.set_update_callback(update_callback)
 
     @staticmethod
-    def transformed_rect(rect, el: Optional[RectElement], vec: Vector, bounds: Rect) -> Rect:
+    def transformed_rect(rect: Rect, el: Optional[RectElement], vec: Vector,
+                         bounds: Rect) -> Rect:
         rc: Rect
         if el == RectElement.area:
             rc = rect >> vec
@@ -186,7 +194,7 @@ class RectSelection:
                 self.moving = click_area
                 if not self.moving:
                     self.moving = RectElement.bottomright
-                    self.sel_rc = Rect(x, y, 0, 0)  # FIXME: w=1, h=1 ?
+                    self.sel_rc = Rect(x, y, 1, 1)
                 return True
         elif event == cv2.EVENT_MOUSEMOVE:
             if flags & cv2.EVENT_FLAG_LBUTTON and self.moving:
