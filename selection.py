@@ -81,6 +81,9 @@ class Rect:
     def __sub__(self, other: Vector) -> "Rect":
         "Resize"
         return Rect(self.x, self.y, self.w - other.x, self.h - other.y)
+    
+    def __bool__(self) -> bool:
+        return self.w != 0 and self.h != 0
 
     def normalize(self):
         "Flip coordinates if width or height is negative"
@@ -212,6 +215,9 @@ class RectSelection:
             return True
 
     def draw_rect(self, rc: Rect, hilight: RectElement=None):
+        if not rc:
+            cv2.imshow(self.wnd, self.img)
+            return  # invalid empty rect
         img = self.img.copy()
         tl, tr, br, bl = rc.points
         cv2.rectangle(img, tl, br, self.clr_white)
