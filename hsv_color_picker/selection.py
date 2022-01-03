@@ -322,6 +322,41 @@ class RectSelection:
         self.selection_callback(rc)
 
 
+def selectROI(img: np.ndarray, showCrosshair: bool=True, fromCenter: bool=False):
+    """
+    Allows users to select a ROI on the given image.
+    Implements OpenCV selectROI interface. NOTE: a point has 1x1 size, not 0x0
+
+    Arguments:
+    `img` - image to select a ROI
+    `showCrosshair` - if true crosshair of selection rectangle will be shown
+    `fromCenter` - if true center of selection will match initial mouse position.
+                   In opposite case a corner of selection rectangle will
+                   correspont to the initial mouse position. NOT IMPLEMENTED!
+
+    Returns:
+    (x, y, w, h) - selected rectangle
+    """
+    if fromCenter:
+        raise NotImplementedError("fromCenter not implemented yet")
+
+    window_name = 'ROI selector'
+    cv2.imshow(window_name, img)
+    sel = RectSelection(window_name, img, show_crosshair=showCrosshair)
+
+    print(
+        "Select a ROI and then press SPACE or ENTER button!\n"
+        "Cancel the selection process by pressing c button!"
+    )
+
+    while True:
+        k = cv2.waitKey(25) & 0xFF
+        if k in (27, ord('\r'), ord(' ')):
+            return astuple(sel.selection)
+        elif k == ord('c'):
+            return (0, 0, 0, 0)
+
+
 if __name__ == '__main__':
     sel = None
 
