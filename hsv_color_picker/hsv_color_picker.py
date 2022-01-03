@@ -37,10 +37,13 @@ class SliderHSV:
         h_comp = np.uint8([np.linspace([0., 255., 255.], [179., 255., 255.], self.size)])
         h_comp = np.broadcast_to(h_comp, (self.slider_height, self.size, 3))
         self.h_comp = cv2.cvtColor(h_comp, cv2.COLOR_HSV2BGR)
-        self.tpl_hsv = np.uint8([  # This is very very slow!
-            (0, i, j) for i in np.linspace(0., 255., self.size)
-                      for j in np.linspace(0., 255., self.size)
-        ]).reshape(self.size, self.size, 3)
+
+        tmp = np.empty((size * size * 3), dtype=np.uint8)
+        _0_255 = np.linspace(0., 255., self.size)
+        # tmp[0::3] = 0  # will be replaced with hue values later
+        tmp[1::3] = _0_255.repeat(self.size)  # repeats each element then concatenates
+        tmp[2::3] = np.tile(_0_255, self.size)  # concatenates array copies
+        self.tpl_hsv = tmp.reshape(self.size, self.size, 3)
 
         im_stub = np.zeros(1)
         cv2.imshow(window_name, im_stub)
