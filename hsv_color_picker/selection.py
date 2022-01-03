@@ -119,10 +119,12 @@ class RectSelection:
 
     def __init__(self, window_name: str, img: np.ndarray,
                  rect: Union[Tuple[int, int, int, int], Rect]=None,
+                 show_crosshair: bool=False,
                  draw_callback: Callable[[Rect, np.ndarray], None]=None,
                  selection_callback: Callable[[Rect], None]=None):
         self.moving: Optional[RectElement] = None
         self._last_cursor_area: Optional[RectElement] = None
+        self.show_crosshair = show_crosshair
         self.draw_callback = lambda rc, img: None
         self.selection_callback = lambda rc: None
         self.wnd = window_name
@@ -235,6 +237,13 @@ class RectSelection:
         cv2.rectangle(img, tl, br, self.clr_white)
         for i in (tl, tr, br, bl):
             cv2.circle(img, i, 2, self.clr_white, thickness=-1)
+        
+        if self.show_crosshair:
+            lt, rt, _, lb = rc.points
+            w2 = Vector(round(rc.w / 2))
+            h2 = Vector(y=round(rc.h / 2))
+            cv2.rectangle(img, lt + w2, lb + w2, self.clr_white)
+            cv2.rectangle(img, lt + h2, rt + h2, self.clr_white)
 
         sides = {RectElement.left: (tl, bl), RectElement.top: (tl, tr),
                  RectElement.right: (tr, br), RectElement.bottom: (bl, br)}
