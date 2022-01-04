@@ -45,6 +45,10 @@ class Vector(Point):
         "Set Y to -Y"
         return Vector(self.x, -self.y)
 
+    def __mul__(self, coef: float):
+        # multiply coordinates by coefficient
+        return Vector(round(self.x * coef), round(self.y * coef))
+
     def __eq__(self, other: "Vector") -> bool:
         return self.x == other.x and self.y == other.y
 
@@ -73,6 +77,10 @@ class Rect:
     def __rshift__(self, other: Vector) -> "Rect":
         "Translate"
         return Rect(self.x + other.x, self.y + other.y, self.w, self.h)
+
+    def __lshift__(self, other: Vector) -> "Rect":
+        "Translate"
+        return Rect(self.x - other.x, self.y - other.y, self.w, self.h)
 
     def __add__(self, other: Vector) -> "Rect":
         "Resize"
@@ -111,6 +119,7 @@ class RectElement(Flag):
     topleft, topright = top | left, top | right  # top corners
     bottomright, bottomleft = bottom | right, bottom | left  # bottom corners
     area = auto()  # inner area
+    from_center = auto()
 
 
 class RectSelection:
@@ -119,12 +128,13 @@ class RectSelection:
 
     def __init__(self, window_name: str, img: np.ndarray,
                  rect: Union[Tuple[int, int, int, int], Rect]=None,
-                 show_crosshair: bool=False,
+                 show_crosshair: bool=False, from_center: bool=False,
                  draw_callback: Callable[[Rect, np.ndarray], None]=None,
                  selection_callback: Callable[[Rect], None]=None):
         self.moving: Optional[RectElement] = None
         self._last_cursor_area: Optional[RectElement] = None
         self.show_crosshair = show_crosshair
+        self.from_center = from_center
         self.draw_callback = lambda rc, img: None
         self.selection_callback = lambda rc: None
         self.wnd = window_name
@@ -132,7 +142,7 @@ class RectSelection:
         self.rc = rect if isinstance(rect, Rect) else \
                   Rect(*(rect or (0, 0) + cv2.getWindowImageRect(self.wnd)[2:]))
         self.sel_rc = Rect()  # selected area
-        self.new_rc = Rect()  # candidate rect
+        self.new_rc = Rect()  # origin rect for resizing
         self.sel_pt = Point()  # point of mouse down event
         cv2.setMouseCallback(window_name, self.on_mouse_event)
         if draw_callback:
@@ -162,26 +172,40 @@ class RectSelection:
             rc = rect + vec.proj_y
         elif el == RectElement.left:
             rc = (rect >> vec.proj_x) - vec.proj_x
+        elif el == RectElement.from_center:
+            # TODO: combine with other resize flags for mirroring
+            rc = (rect << vec) + vec * 2
         elif el is None:
-            raise NotImplementedError(el)
+            raise ValueError(el)  # linter
         rc.normalize()
         lt, _, br, _ = rc.points
         b_lt, _, b_br, _ = bounds.points
         # if rect inside bounds v_lt.x,y > 0, v_br.x,y < 0
         v_lt = lt - b_lt 
         v_br = br - b_br
-        if v_lt.x < 0:  # left X bound
+        # Left X is out of bounds AND exceeds MORE than the opposite side
+        if v_lt.x < 0 and (abs(v_lt.x) - v_br.x) > 0:  # left X bound
             rc.x = b_lt.x
-            # when whole rectangle is moved its size doesn't change
-            rc.w += v_lt.x if el != RectElement.area else 0
+            # when whole rectangle is moved its size doesn't change;
+            # both left and right parts are clipped if `from_center`
+            rc.w += v_lt.x * (0 if el == RectElement.area else
+                              2 if el == RectElement.from_center else
+                              1)
         elif v_br.x > 0:  # right X bound
-            rc.w -= v_br.x if el != RectElement.area else 0
+            rc.w -= v_br.x * (0 if el == RectElement.area else
+                              2 if el == RectElement.from_center else
+                              1)
             rc.x = b_br.x - rc.w + 1
-        if v_lt.y < 0:  # left Y bound
+        # Top Y is out of bounds AND exceeds MORE than the opposite side
+        if v_lt.y < 0 and (abs(v_lt.y) - v_br.y) > 0:  # top Y bound
             rc.y = b_lt.y
-            rc.h += v_lt.y if el != RectElement.area else 0
-        elif v_br.y > 0:  # right Y bound
-            rc.h -= v_br.y if el != RectElement.area else 0
+            rc.h += v_lt.y * (0 if el == RectElement.area else
+                              2 if el == RectElement.from_center else
+                              1)
+        elif v_br.y > 0:  # bottom Y bound
+            rc.h -= v_br.y * (0 if el == RectElement.area else
+                              2 if el == RectElement.from_center else
+                              1)
             rc.y = b_br.y - rc.h + 1
         return rc
 
@@ -201,8 +225,9 @@ class RectSelection:
                 if click_area:
                     self.moving = click_area
                     self.new_rc = self.sel_rc
-                else:  
-                    self.moving = RectElement.bottomright
+                else:
+                    self.moving = RectElement.from_center if self.from_center \
+                                  else RectElement.bottomright
                     self.new_rc = Rect(x, y, 1, 1)
                 return True
         elif event == cv2.EVENT_MOUSEMOVE:
@@ -336,7 +361,7 @@ def selectROI(img: np.ndarray, showCrosshair: bool=True, fromCenter: bool=False,
     `showCrosshair` - if true crosshair of selection rectangle will be shown
     `fromCenter` - if true center of selection will match initial mouse position.
                    In opposite case a corner of selection rectangle will
-                   correspont to the initial mouse position. NOT IMPLEMENTED!
+                   correspont to the initial mouse position.
     `windowName` - name of the window where selection process will be shown,
                    default is 'ROI selector'. NOTE: in built-in version of
                    `selectROI` it's the first positional argument
@@ -344,11 +369,9 @@ def selectROI(img: np.ndarray, showCrosshair: bool=True, fromCenter: bool=False,
     Returns:
     (x, y, w, h) - selected rectangle
     """
-    if fromCenter:
-        raise NotImplementedError("fromCenter not implemented yet")
-
     cv2.imshow(windowName, img)
-    sel = RectSelection(windowName, img, show_crosshair=showCrosshair)
+    sel = RectSelection(windowName, img, show_crosshair=showCrosshair,
+                        from_center=fromCenter)
 
     print(
         "Select a ROI and then press SPACE or ENTER button!\n"
