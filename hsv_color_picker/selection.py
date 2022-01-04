@@ -131,7 +131,8 @@ class RectSelection:
         self.img = img
         self.rc = rect if isinstance(rect, Rect) else \
                   Rect(*(rect or (0, 0) + cv2.getWindowImageRect(self.wnd)[2:]))
-        self.sel_rc = Rect()
+        self.sel_rc = Rect()  # selected area
+        self.new_rc = Rect()  # candidate rect
         self.sel_pt = Point()  # point of mouse down event
         cv2.setMouseCallback(window_name, self.on_mouse_event)
         if draw_callback:
@@ -197,15 +198,17 @@ class RectSelection:
             # see `cursor_tolerance`
             if click_area or self.pos_in_rect(x, y, self.rc):
                 self.sel_pt = pt
-                self.moving = click_area
-                if not self.moving:
+                if click_area:
+                    self.moving = click_area
+                    self.new_rc = self.sel_rc
+                else:  
                     self.moving = RectElement.bottomright
-                    self.sel_rc = Rect(x, y, 1, 1)
+                    self.new_rc = Rect(x, y, 1, 1)
                 return True
         elif event == cv2.EVENT_MOUSEMOVE:
             if flags & cv2.EVENT_FLAG_LBUTTON and self.moving:
                 self.draw_rect(
-                    self.transformed_rect(self.sel_rc, self.moving,
+                    self.transformed_rect(self.new_rc, self.moving,
                                           pt - self.sel_pt, bounds=self.rc)
                 )
                 return True
@@ -217,7 +220,7 @@ class RectSelection:
                     return True
         elif event == cv2.EVENT_LBUTTONUP and self.moving:
             self.set_selection(self.transformed_rect(
-                self.sel_rc, self.moving, pt - self.sel_pt, bounds=self.rc
+                self.new_rc, self.moving, pt - self.sel_pt, bounds=self.rc
             ))
             self.moving = None
             self._last_cursor_area = None  # forced update
