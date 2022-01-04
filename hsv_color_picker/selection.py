@@ -120,6 +120,7 @@ class RectElement(Flag):
     bottomright, bottomleft = bottom | right, bottom | left  # bottom corners
     area = auto()  # inner area
     from_center = auto()
+    # TODO: point element for point selection and moving
 
 
 class RectSelection:
@@ -229,6 +230,7 @@ class RectSelection:
                     self.moving = RectElement.from_center if self.from_center \
                                   else RectElement.bottomright
                     self.new_rc = Rect(x, y, 1, 1)
+                self.draw_rect(self.new_rc)  # update display
                 return True
         elif event == cv2.EVENT_MOUSEMOVE:
             if flags & cv2.EVENT_FLAG_LBUTTON and self.moving:
