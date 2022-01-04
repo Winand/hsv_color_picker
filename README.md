@@ -22,7 +22,6 @@ while True:
 ## ROI
 `selection.RectSelection` class allows to select ROI on any loaded image.
 The selection rectangle can be moved or resized using the mouse cursor.
-This class can be used to replace [cv2.selectROI](https://docs.opencv.org/4.x/d7/dfc/group__highgui.html#ga8daf4730d3adf7035b6de9be4c469af5).
 
 ![](screenshot_roi.jpg)
 
@@ -41,4 +40,18 @@ while True:
     k = cv2.waitKey(5) & 0xFF
     if k == 27:
         break
+```
+
+### selectROI
+`selection.selectROI` function implements interface of
+[cv2.selectROI](https://docs.opencv.org/4.x/d7/dfc/group__highgui.html#ga8daf4730d3adf7035b6de9be4c469af5).
+
+```
+import cv2
+
+from hsv_color_picker.selection import selectROI
+
+img = cv2.imread("house.jpg")
+rc = selectROI(img)
+print(rc)
 ```
